@@ -1,15 +1,9 @@
-from enum import Enum
 from typing import Optional
 
 from fastapi import FastAPI
-from pydantic import BaseModel
 
-
-# TODO: Refactor out models and classes
-class Team(BaseModel):
-    name: str
-    sport: str
-
+from models.answer import Answer, AnswerChoices, Sentiment
+from models.team import Team
 
 app = FastAPI()
 
@@ -20,8 +14,17 @@ async def read_root():
 
 
 @app.get('/ask/{team}')
-async def will_they_win(team: str, sentiment: Optional[str] = None):
-    return {'team': team, 'answer': 'Nope', 'sentiment': sentiment}
+async def will_they_win(team: str, sentiment: Optional[Sentiment] = None):
+    answer_choices_callable = AnswerChoices.any
+    if sentiment == Sentiment.NEGATIVE:
+        answer_choices_callable = AnswerChoices.negative
+    elif sentiment == Sentiment.NEUTRAL:
+        answer_choices_callable = AnswerChoices.neutral
+    elif sentiment == Sentiment.POSITIVE:
+        answer_choices_callable = AnswerChoices.positive
+
+    answer = answer_choices_callable()
+    return {'team': team, 'answer': answer, 'requested_sentiment': sentiment}
 
 
 @app.post('/team/create')
