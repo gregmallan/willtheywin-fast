@@ -10,10 +10,6 @@ class Sentiment(str, Enum):
     POSITIVE = 'positive'
 
 
-print(Sentiment.NEGATIVE.name)
-print(Sentiment.NEGATIVE.value)
-
-
 class Answer(BaseModel):
     text: str
     sentiment: Sentiment
