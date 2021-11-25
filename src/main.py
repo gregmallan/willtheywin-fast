@@ -33,6 +33,18 @@ async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_sess
     return team
 
 
+@app.get('/teams/{team_id}/')
+async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
+    query = select(Team).where(Team.id == team_id)
+    results = await session.execute(query)
+    team = results.first()
+
+    if team is None:
+        return {'OK': False, 'team': None, 'error': f'No matching team for id={team_id}'}
+
+    return team
+
+
 @app.get('/teams/{team_id}/ask')
 async def team_will_they_win(team_id: int, sentiment: Optional[Sentiment] = None,
                              session: AsyncSession = Depends(get_session)):
