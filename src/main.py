@@ -49,6 +49,18 @@ async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
     return team
 
 
+@app.get('/teams/name/{team_name}')
+async def get_team_by_name(team_name: str, session: AsyncSession = Depends(get_session)):
+    query = select(Team).where(Team.name == team_name.strip().lower())
+    result = await session.execute(query)
+    team = result.first()
+
+    if team is None:
+        return {'OK': False, 'team_name': team_name, 'error': f'No matching team with name={team_name}'}
+
+    return team
+
+
 @app.put('/teams/{team_id}')
 async def update_team(team_id: int, team: TeamBase, session: AsyncSession = Depends(get_session)):
     db_team = await session.get(Team, team_id)
