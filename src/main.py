@@ -39,11 +39,12 @@ async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
     # query = select(Team).where(Team.id == team_id)
     # results = await session.execute(query)
     # team = results.first() # Returns a sqlalchemy Row
+    # team = results.one()  # Returns a sqlalchemy Row or raises
 
     team = await session.get(Team, team_id)  # Returns Team instance
 
     if team is None:
-        return {'OK': False, 'team': None, 'error': f'No matching team for id={team_id}'}
+        return {'OK': False, 'team': None, 'error': f'No matching team with id={team_id}'}
 
     return team
 
@@ -60,6 +61,19 @@ async def update_team(team_id: int, team: TeamBase, session: AsyncSession = Depe
     await session.refresh(db_team)
 
     return db_team
+
+
+@app.delete('/teams/{team_id}')
+async def delete_team(team_id: int, session: AsyncSession = Depends(get_session)):
+    team = await session.get(Team, team_id)
+
+    if team is None:
+        return {'OK': False, 'team_id': team_id, 'error': f'No matching team with id={team_id}'}
+
+    await session.delete(team)
+    await session.commit()
+
+    return {'OK': True, 'team': team, 'msg': f'team id={team_id} deleted'}
 
 
 @app.get('/teams/{team_id}/ask')
