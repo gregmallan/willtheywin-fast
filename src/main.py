@@ -33,7 +33,7 @@ async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_sess
     return team
 
 
-@app.get('/teams/{team_id}/')
+@app.get('/teams/{team_id}')
 async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
     # Alternate option to make the query for team by id
     # query = select(Team).where(Team.id == team_id)
