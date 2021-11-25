@@ -1,11 +1,11 @@
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.db import get_session, init_db
-from db.models import Team, TeamCreate
+from db.models import Team, TeamBase, TeamCreate
 from db.schema.answer import Answer, AnswerChoices, Sentiment
 
 app = FastAPI()
@@ -35,14 +35,31 @@ async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_sess
 
 @app.get('/teams/{team_id}/')
 async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
-    query = select(Team).where(Team.id == team_id)
-    results = await session.execute(query)
-    team = results.first()
+    # Alternate option to make the query for team by id
+    # query = select(Team).where(Team.id == team_id)
+    # results = await session.execute(query)
+    # team = results.first() # Returns a sqlalchemy Row
+
+    team = await session.get(Team, team_id)  # Returns Team instance
 
     if team is None:
         return {'OK': False, 'team': None, 'error': f'No matching team for id={team_id}'}
 
     return team
+
+
+@app.put('/teams/{team_id}')
+async def update_team(team_id: int, team: TeamBase, session: AsyncSession = Depends(get_session)):
+    db_team = await session.get(Team, team_id)
+
+    for field, val in team.dict().items():
+        setattr(db_team, field, val)
+
+    session.add(db_team)
+    await session.commit()
+    await session.refresh(db_team)
+
+    return db_team
 
 
 @app.get('/teams/{team_id}/ask')
