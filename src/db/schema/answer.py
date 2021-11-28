@@ -46,16 +46,18 @@ class AnswerChoices:
         'there\'s a good chance of it',
     ]
 
+    _PHRASES_ANY = _PHRASES_NEGATIVE + _PHRASES_NEUTRAL + _PHRASES_POSITIVE
+
     ANSWERS_NEGATIVE = [Answer(text=text, sentiment=Sentiment.NEGATIVE) for text in _PHRASES_NEGATIVE]
     ANSWERS_NEUTRAL = [Answer(text=text, sentiment=Sentiment.NEUTRAL) for text in _PHRASES_NEUTRAL]
     ANSWERS_POSITIVE = [Answer(text=text, sentiment=Sentiment.POSITIVE) for text in _PHRASES_POSITIVE]
+    ANSWERS_ANY = [Answer(text=text, sentiment=Sentiment.POSITIVE) for text in _PHRASES_ANY]
 
     # TODO: Change this to take weights optional weights for negative, neutral and positive  sentiments
     @staticmethod
     def any():
         """ Returns a random answer with any sentiment. """
-        all_answers = AnswerChoices.ANSWERS_NEGATIVE + AnswerChoices.ANSWERS_NEUTRAL + AnswerChoices.ANSWERS_POSITIVE
-        return choices(all_answers)[0]
+        return choice(AnswerChoices.ANSWERS_ANY)
 
     @staticmethod
     def negative():
