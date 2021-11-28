@@ -1,17 +1,18 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.db import get_session, init_db
 from db.models import Team, TeamBase, TeamCreate
 from db.schema.answer import Answer, AnswerChoices, Sentiment
+from response_exception import HTTPExceptionNotFound
 
 app = FastAPI()
 
 
-@app.get('/ping')
+@app.get('/ping', response_model=Dict)
 async def ping():
     return {'ping': 'pong!'}
 
@@ -24,7 +25,7 @@ async def get_teams(session: AsyncSession = Depends(get_session)):
     return teams
 
 
-@app.post('/teams')
+@app.post('/teams', response_model=Team, status_code=status.HTTP_201_CREATED)
 async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_session)):
     team = Team(name=team.name, city=team.city, sport=team.sport)
     session.add(team)
@@ -33,7 +34,7 @@ async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_sess
     return team
 
 
-@app.get('/teams/{team_id}')
+@app.get('/teams/{team_id}', response_model=Team)
 async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
     # Alternate option to make the query for team by id
     # query = select(Team).where(Team.id == team_id)
@@ -44,26 +45,29 @@ async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
     team = await session.get(Team, team_id)  # Returns Team instance
 
     if team is None:
-        return {'OK': False, 'team': None, 'error': f'No matching team with id={team_id}'}
+        raise HTTPExceptionNotFound(f'No team found with id={team_id}')
 
     return team
 
 
-@app.get('/teams/name/{team_name}')
+@app.get('/teams/name/{team_name}', response_model=List[Team])
 async def get_team_by_name(team_name: str, session: AsyncSession = Depends(get_session)):
     query = select(Team).where(Team.name == team_name.strip().lower())
     result = await session.execute(query)
-    team = result.first()
+    teams = result.scalars().all()
 
-    if team is None:
-        return {'OK': False, 'team_name': team_name, 'error': f'No matching team with name={team_name}'}
+    if not teams:
+        raise HTTPExceptionNotFound(f'No teams found with name={team_name}')
 
-    return team
+    return teams
 
 
-@app.put('/teams/{team_id}')
+@app.put('/teams/{team_id}', response_model=Team, status_code=status.HTTP_200_OK)
 async def update_team(team_id: int, team: TeamBase, session: AsyncSession = Depends(get_session)):
     db_team = await session.get(Team, team_id)
+
+    if db_team is None:
+        raise HTTPExceptionNotFound(f'No team found with id={team_id}')
 
     for field, val in team.dict().items():
         setattr(db_team, field, val)
@@ -75,12 +79,12 @@ async def update_team(team_id: int, team: TeamBase, session: AsyncSession = Depe
     return db_team
 
 
-@app.delete('/teams/{team_id}')
+@app.delete('/teams/{team_id}', response_model=Dict, status_code=status.HTTP_200_OK)
 async def delete_team(team_id: int, session: AsyncSession = Depends(get_session)):
     team = await session.get(Team, team_id)
 
     if team is None:
-        return {'OK': False, 'team_id': team_id, 'error': f'No matching team with id={team_id}'}
+        raise HTTPExceptionNotFound(f'No team found with id={team}')
 
     await session.delete(team)
     await session.commit()
@@ -88,15 +92,13 @@ async def delete_team(team_id: int, session: AsyncSession = Depends(get_session)
     return {'OK': True, 'team': team, 'msg': f'team id={team_id} deleted'}
 
 
-@app.get('/teams/{team_id}/ask')
+@app.get('/teams/{team_id}/ask', response_model=Dict)
 async def team_will_they_win(team_id: int, sentiment: Optional[Sentiment] = None,
                              session: AsyncSession = Depends(get_session)):
-    query = select(Team).where(Team.id == team_id)
-    results = await session.execute(query)
-    team = results.first()
+    team = await session.get(Team, team_id)
 
     if team is None:
-        return {'OK': False, 'team': None, 'error': f'No matching team for id={team_id}'}
+        raise HTTPExceptionNotFound(f'No team found with id={team}')
 
     answer_choices_callable = AnswerChoices.any
     if sentiment == Sentiment.NEGATIVE:
