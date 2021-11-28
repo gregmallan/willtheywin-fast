@@ -4,10 +4,10 @@ from fastapi import Depends, FastAPI, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.db import get_session, init_db
-from db.models import Team, TeamBase, TeamCreate
-from db.schema.answer import Answer, AnswerChoices, Sentiment
-from response_exception import HTTPExceptionNotFound
+from src.db.db import get_session, init_db
+from src.db.models import Team, TeamBase, TeamCreate
+from src.db.schema.answer import Answer, AnswerChoices, Sentiment
+from src.response_exception import HTTPExceptionNotFound
 
 SENTIMENT_CHOICES_CALLABLE_MAP = {
     Sentiment.NEGATIVE: AnswerChoices.negative,
