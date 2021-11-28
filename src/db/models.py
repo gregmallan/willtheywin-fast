@@ -1,7 +1,13 @@
 from typing import Optional
 
+from pydantic import validator
+
 from sqlalchemy import Column, String, UniqueConstraint
 from sqlmodel import SQLModel, Field, Index
+
+
+def normalize_str(value: str) -> str:
+    return ' '.join(word.strip() for word in value.strip().split(' ') if word).lower()
 
 
 class TeamBase(SQLModel):
@@ -19,4 +25,6 @@ class Team(TeamBase, table=True):
 
 
 class TeamCreate(TeamBase):
-    pass
+    _normalize_name = validator('name', allow_reuse=True)(normalize_str)
+    _normalize_city = validator('city', allow_reuse=True)(normalize_str)
+    _normalize_sport = validator('sport', allow_reuse=True)(normalize_str)

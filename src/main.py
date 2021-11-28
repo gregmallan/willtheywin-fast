@@ -69,7 +69,7 @@ async def get_team_by_name(team_name: str, session: AsyncSession = Depends(get_s
 
 
 @app.put('/teams/{team_id}', response_model=Team, status_code=status.HTTP_200_OK)
-async def update_team(team_id: int, team: TeamBase, session: AsyncSession = Depends(get_session)):
+async def update_team(team_id: int, team: TeamCreate, session: AsyncSession = Depends(get_session)):
     db_team = await session.get(Team, team_id)
 
     if db_team is None:
