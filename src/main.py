@@ -9,6 +9,12 @@ from db.models import Team, TeamBase, TeamCreate
 from db.schema.answer import Answer, AnswerChoices, Sentiment
 from response_exception import HTTPExceptionNotFound
 
+SENTIMENT_CHOICES_CALLABLE_MAP = {
+    Sentiment.NEGATIVE: AnswerChoices.negative,
+    Sentiment.NEUTRAL: AnswerChoices.neutral,
+    Sentiment.POSITIVE: AnswerChoices.positive,
+}
+
 app = FastAPI()
 
 
@@ -100,13 +106,6 @@ async def team_will_they_win(team_id: int, sentiment: Optional[Sentiment] = None
     if team is None:
         raise HTTPExceptionNotFound(f'No team found with id={team}')
 
-    answer_choices_callable = AnswerChoices.any
-    if sentiment == Sentiment.NEGATIVE:
-        answer_choices_callable = AnswerChoices.negative
-    elif sentiment == Sentiment.NEUTRAL:
-        answer_choices_callable = AnswerChoices.neutral
-    elif sentiment == Sentiment.POSITIVE:
-        answer_choices_callable = AnswerChoices.positive
+    answer = SENTIMENT_CHOICES_CALLABLE_MAP.get(sentiment, AnswerChoices.any)()
 
-    answer = answer_choices_callable()
     return {'team': team, 'answer': answer, 'requested_sentiment': sentiment}
