@@ -6,7 +6,7 @@ from sqlmodel import create_engine, SQLModel, Session
 # DATABASE_URL = "sqlite:///../test.db"
 
 # Sqlite async
-DATABASE_URL = "sqlite+aiosqlite:///../test.db"
+DATABASE_URL = "sqlite+aiosqlite:///willtheywinfastapi-dev.db"
 
 # Postgres sync
 # DATABASE_URL = "postgresql://user:password@postgresserver/db"
