@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import create_engine, SQLModel, Session
 
@@ -14,7 +14,12 @@ DATABASE_URL = "sqlite+aiosqlite:///willtheywinfastapi-dev.db"
 # Postgres async
 # DATABASE_URL = "postgresql+asyncpg://user:password@postgresserver/db"
 
-engine = create_async_engine(DATABASE_URL, connect_args={'check_same_thread': False}, echo=True, future=True)
+
+def create_async_db_engine(db_url) -> AsyncEngine:
+    return create_async_engine(db_url, connect_args={'check_same_thread': False}, echo=True, future=True)
+
+
+engine = create_async_db_engine(DATABASE_URL)
 
 
 async def init_db():
