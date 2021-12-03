@@ -141,3 +141,74 @@ class TestGetTeams:
         for team_dict, team in zip(response_teams, teams):
             assert team_dict == team
             assert team_dict == team.dict()
+
+
+@pytest.mark.asyncio
+class TestUpdateTeam():
+
+    async def test_no_teams(self, async_client, db):
+        non_existent_id = 1
+        update_data = dict(name='Canucks', city='Rain city', sport='hockey')
+        response = await async_client.put(f'/teams/{non_existent_id}', json=update_data)
+        assert response.status_code == 404
+        assert response.json() == not_found_response_json(non_existent_id)
+
+    async def test_teams_not_found(self, async_client, team):
+        non_existent_id = team.id + 1
+        update_data = dict(name='Canucks', city='Rain city', sport='hockey')
+        response = await async_client.put(f'/teams/{non_existent_id}', json=update_data)
+        assert response.status_code == 404
+        assert response.json() == not_found_response_json(non_existent_id)
+
+    @pytest.mark.parametrize('bad_data', [
+        dict(name=None, city='cow town', sport='hockey'),
+        dict(name='Flames', city=None, sport='hockey'),
+        dict(name='Flames', city='Cow town', sport=None),
+    ])
+    async def test_failure_bad_request_none_data(self, bad_data, async_client, team):
+        # team fixture
+        # Team(id=?, name='knuckleheads', city='rain city', sport='hockey')
+        team_id = team.id
+        response = await async_client.put(f'/teams/{team_id}', json=bad_data)
+        res_data = response.json()
+        assert response.status_code == 422
+        print(res_data)
+        assert res_data['detail'][0]['msg'] == 'none is not an allowed value'
+        assert res_data['detail'][0]['type'] == 'type_error.none.not_allowed'
+
+    @pytest.mark.parametrize('bad_data', [
+        dict(),
+        dict(name='No city or sport'),
+        dict(name='OK', city='missing sport'),
+        dict(name='OK', sport='no city'),
+        dict(city='missing name and sport'),
+        dict(city='missing name', sport='cool sport'),
+        dict(sport='cool sport missing name and city'),
+        dict(id=1),
+        dict(id=1, city='Cow town', sport='hockey'),
+        dict(id=1, name='flames', sport='hockey'),
+        dict(id=1, name='flames', city='cow town'),
+        dict(fake_attr='Missing name', city='Cow town', sport='hockey'),
+        dict(fake_attr='Missing city', name='Flames', sport='hockey'),
+        dict(fake_attr='Missing sport', name='Flames', city='Cow town'),
+    ])
+    async def test_failure_bad_request_missing_data(self, bad_data, async_client, team):
+        # team fixture
+        # Team(id=?, name='knuckleheads', city='rain city', sport='hockey')
+        team_id = team.id
+        response = await async_client.put(f'/teams/{team_id}', json=bad_data)
+        res_data = response.json()
+        assert response.status_code == 422
+        print(res_data)
+        assert res_data['detail'][0]['msg'] == 'field required'
+        assert res_data['detail'][0]['type'] == 'value_error.missing'
+
+    async def test_success(self, async_client, team):
+        # team fixture
+        # Team(id=?, name='knuckleheads', city='rain city', sport='hockey')
+        team_id = team.id
+        update_data = dict(name='CanucKS', city='Rain   city', sport='hockey')
+        expected_data = dict(id=team_id, name='canucks', city='rain city', sport='hockey')
+        response = await async_client.put(f'/teams/{team_id}', json=update_data)
+        assert response.status_code == 200
+        assert response.json() == expected_data
