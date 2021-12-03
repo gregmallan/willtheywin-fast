@@ -41,6 +41,7 @@ async def async_client(app):
 
 @pytest.fixture
 async def db():
+    # TODO: Do this with alembic migrations
     await init_db_with_engine(engine)
     yield
     # await reset_db_with_engine(engine)
