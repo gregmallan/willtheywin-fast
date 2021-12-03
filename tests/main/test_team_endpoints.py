@@ -2,11 +2,33 @@ from typing import Dict, List
 
 import pytest
 
-from src.db.models import Team
+from src.db.models import Team, TeamCreate
 
 
 def not_found_response_json(team_id):
     return {'detail': f'No team found with id={team_id}'}
+
+
+@pytest.mark.asyncio
+class TestCreateTeam():
+
+    @pytest.mark.parametrize('team_data', [
+        dict(name='Knuckleheads', city='Rain city', sport='Hockey'),
+        dict(name='knuckleheads', city='rain city', sport='hockey'),
+        dict(name='KNUCKLEHEADS', city='RAIN CITY', sport='HOCKEY'),
+        dict(name='knUCKLEHEaDS', city='RaIn cITY', sport='hocKeY'),
+        dict(name='knuckleheads', city='rain  city', sport='hockey'),
+    ])
+    async def test_create_team_already_exists(self, team_data, async_client, team):
+        tc = TeamCreate(**team_data)
+        tc_dict = tc.dict()
+        response = await async_client.post('/teams', json=tc_dict)
+        assert response.status_code == 400
+        res_data = response.json()
+        assert 'IntegrityError' in res_data['detail']
+        for k, v in tc_dict.items():
+            assert k in res_data['detail']
+            assert v in res_data['detail']
 
 
 @pytest.mark.asyncio
