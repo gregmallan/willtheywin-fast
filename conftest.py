@@ -7,7 +7,7 @@ from httpx import AsyncClient
 
 from src.db.db import create_async_db_engine, get_session_with_engine, init_db_with_engine, reset_db_with_engine
 from src.db.models import Team
-from src.main import app as fast_api_app
+from src.main import app as fastapi_app, get_session
 
 # Testing Sqlite async
 TEST_DB_NAME = 'willtheywinfastapi-test.db'
@@ -22,10 +22,11 @@ def pytest_report_header(config):
 
 @pytest.fixture
 def app():
-    return fast_api_app
+    return fastapi_app
 
 
 # -- Client fixtures --
+
 @pytest.fixture
 def client(app):
     return TestClient(app)
@@ -38,6 +39,21 @@ async def async_client(app):
 
 
 # -- DB fixtures --
+
+async def override_get_session():
+    db = None
+    try:
+        db = get_session_with_engine(engine)
+        yield db
+    finally:
+        if db:
+            await db.close()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def override_get_session_fixture():
+    fastapi_app.dependency_overrides[get_session] = override_get_session
+
 
 @pytest.fixture
 async def db():
