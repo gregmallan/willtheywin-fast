@@ -12,23 +12,60 @@ def not_found_response_json(team_id):
 @pytest.mark.asyncio
 class TestCreateTeam():
 
-    @pytest.mark.parametrize('team_data', [
+    @pytest.mark.parametrize('team_dict', [
         dict(name='Knuckleheads', city='Rain city', sport='Hockey'),
         dict(name='knuckleheads', city='rain city', sport='hockey'),
         dict(name='KNUCKLEHEADS', city='RAIN CITY', sport='HOCKEY'),
         dict(name='knUCKLEHEaDS', city='RaIn cITY', sport='hocKeY'),
         dict(name='knuckleheads', city='rain  city', sport='hockey'),
     ])
-    async def test_create_team_already_exists(self, team_data, async_client, team):
-        tc = TeamCreate(**team_data)
-        tc_dict = tc.dict()
-        response = await async_client.post('/teams', json=tc_dict)
+    async def test_create_team_already_exists(self, team_dict, async_client, team):
+        response = await async_client.post('/teams', json=team_dict)
         assert response.status_code == 400
         res_data = response.json()
         assert 'IntegrityError' in res_data['detail']
-        for k, v in tc_dict.items():
+        for k, v in team_dict.items():
             assert k in res_data['detail']
-            assert v in res_data['detail']
+            assert ' '.join(word.strip() for word in v.split(' ') if word).lower() in res_data['detail']
+
+    async def test_create_none_exist(self, async_client, db):
+        team_dict = dict(name='Knuckleheads', city='Rain  city', sport='Hockey')
+        expected_team_dict = dict(name='knuckleheads', city='rain city', sport='hockey')
+        response = await async_client.post('/teams', json=team_dict)
+        assert response.status_code == 201
+        res_data = response.json()
+        assert res_data.pop('id')
+        assert res_data == expected_team_dict
+
+    async def test_create_with_existing_teams(self, async_client, teams):
+        team_dict = dict(name='Canucks', city='Vancouver', sport='Hockey')
+        response = await async_client.post('/teams', json=team_dict)
+        assert response.status_code == 201
+        res_data = response.json()
+        assert res_data.pop('id')
+        assert res_data == {k: v.lower() for k, v in team_dict.items()}
+
+    @pytest.mark.parametrize('team_dict', [
+        dict(name='Canucks', city='Rain city', sport='Hockey'),
+        dict(name='Flames', city='Calgary', sport='Hockey'),
+        dict(name='Flames', city='Cow Town', sport='Curling'),
+        dict(name='Blue Jays', city='Toronto', sport='Baseball'),
+        dict(name='Raptors', city='Toronto', sport='Basketball'),
+    ])
+    async def test_create_with_similar_teams(self, team_dict, async_client, teams):
+        # teams fixture data (excluding id)
+        # teams = [
+        #     Team(name='Knuckleheads', city='Rain city', sport='Hockey'),
+        #     Team(name='Flames', city='Cow town', sport='Hockey'),
+        #     Team(name='Blue Jays', city='Taranta', sport='Baseball'),
+        # ]
+
+        response = await async_client.post('/teams', json=team_dict)
+
+        assert response.status_code == 201
+        res_data = response.json()
+        assert res_data.pop('id')
+        assert res_data == {k: v.lower() for k, v in team_dict.items()}
 
 
 @pytest.mark.asyncio
