@@ -18,6 +18,13 @@ class TestGetTeam():
         assert response.status_code == 404
         assert response.json() == not_found_response_json(non_existent_id)
 
+    async def test_team_exist_invalid_id(self, async_client, team):
+        invalid_id = team.name
+        response = await async_client.get(f'/teams/{invalid_id}')
+        assert response.status_code == 422
+        res_data = response.json()
+        assert 'team_id' in res_data['detail'][0]['loc']
+
     async def test_single_team_exist_not_found(self, async_client, team):
         non_existent_id = team.id + 1
         response = await async_client.get(f'/teams/{non_existent_id}')
