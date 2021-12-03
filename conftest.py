@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
 from src.db.db import create_async_db_engine, get_session_with_engine, init_db_with_engine, reset_db_with_engine
-from src.db.models import Team
+from src.db.models import Team, TeamCreate
 from src.main import app as fastapi_app, get_session
 
 # Testing Sqlite async
@@ -78,9 +78,18 @@ async def db_session():
 # --  Model fixtures --
 
 @pytest.fixture
-async def teams(db, db_session):
-    from src.db.models import TeamCreate
+async def team(db, db_session):
+    # Use TeamCreate for field normalization on name, city and sport but Team for the db query.
+    tc = TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey')
+    team = Team(**tc.dict())
+    db_session.add(team)
+    await db_session.commit()
+    await db_session.refresh(team)
+    return team
 
+
+@pytest.fixture
+async def teams(db, db_session):
     # Use TeamCreate for field normalization on name, city and sport but Team for the db query.
     teams = [
         TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey'),
