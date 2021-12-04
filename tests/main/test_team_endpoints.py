@@ -245,3 +245,44 @@ class TestUpdateTeam():
         response = await async_client.put(f'/teams/{team_id}', json=update_data)
         assert response.status_code == 200
         assert response.json() == expected_data
+
+
+@pytest.mark.asyncio
+class TestDeleteTeam():
+
+    async def test_no_teams(self, async_client, db):
+        non_existent_id = 1
+        response = await async_client.delete(f'/teams/{non_existent_id}')
+        assert response.status_code == 404
+        assert response.json() == not_found_response_json(non_existent_id)
+
+    async def test_team_exist_invalid_id(self, async_client, team):
+        invalid_id = team.name
+        response = await async_client.delete(f'/teams/{invalid_id}')
+        assert response.status_code == 422
+        res_data = response.json()
+        assert 'team_id' in res_data['detail'][0]['loc']
+
+    async def test_single_team_exist_not_found(self, async_client, team):
+        non_existent_id = team.id + 1
+        response = await async_client.delete(f'/teams/{non_existent_id}')
+        assert response.status_code == 404
+        assert response.json() == not_found_response_json(non_existent_id)
+
+    async def test_single_team_exist_found(self, async_client, team):
+        response = await async_client.delete(f'/teams/{team.id}')
+        assert response.status_code == 200
+        assert response.json() == {'OK': True, 'team': team, 'msg': f'team id={team.id} deleted'}
+
+    async def test_multiple_teams_exist_not_found(self, async_client, teams):
+        sort_team_objs_by_id(teams)
+        non_existent_id = teams[-1].id + 1
+        response = await async_client.delete(f'/teams/{non_existent_id}')
+        assert response.status_code == 404
+        assert response.json() == not_found_response_json(non_existent_id)
+
+    async def test_multiple_teams(self, async_client, teams):
+        team = teams[0]
+        response = await async_client.delete(f'/teams/{team.id}')
+        assert response.status_code == 200
+        assert response.json() == {'OK': True, 'team': team, 'msg': f'team id={team.id} deleted'}

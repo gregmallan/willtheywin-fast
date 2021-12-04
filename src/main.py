@@ -95,7 +95,7 @@ async def delete_team(team_id: int, session: AsyncSession = Depends(get_session)
     team = await session.get(Team, team_id)
 
     if team is None:
-        raise HTTPExceptionNotFound(f'No team found with id={team}')
+        raise HTTPExceptionNotFound(f'No team found with id={team_id}')
 
     await session.delete(team)
     await session.commit()
@@ -109,7 +109,7 @@ async def team_will_they_win(team_id: int, sentiment: Optional[Sentiment] = None
     team = await session.get(Team, team_id)
 
     if team is None:
-        raise HTTPExceptionNotFound(f'No team found with id={team}')
+        raise HTTPExceptionNotFound(f'No team found with id={team_id}')
 
     answer = SENTIMENT_CHOICES_CALLABLE_MAP.get(sentiment, AnswerChoices.any)()
 
