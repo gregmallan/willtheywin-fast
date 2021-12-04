@@ -2,12 +2,13 @@ from typing import Dict, List, Optional
 
 from fastapi import Depends, FastAPI, status
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.db import get_session, init_db
 from src.db.models import Team, TeamBase, TeamCreate
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
-from src.response_exception import HTTPExceptionNotFound
+from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
 
 SENTIMENT_CHOICES_CALLABLE_MAP = {
     Sentiment.NEGATIVE: AnswerChoices.negative,
@@ -35,7 +36,11 @@ async def get_teams(session: AsyncSession = Depends(get_session)):
 async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_session)):
     team = Team(name=team.name, city=team.city, sport=team.sport)
     session.add(team)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError as e:
+        raise HTTPBadRequest(f'IntegrityError creating Team: {team.dict()}')
+
     await session.refresh(team)
     return team
 
@@ -90,7 +95,7 @@ async def delete_team(team_id: int, session: AsyncSession = Depends(get_session)
     team = await session.get(Team, team_id)
 
     if team is None:
-        raise HTTPExceptionNotFound(f'No team found with id={team}')
+        raise HTTPExceptionNotFound(f'No team found with id={team_id}')
 
     await session.delete(team)
     await session.commit()
@@ -104,7 +109,7 @@ async def team_will_they_win(team_id: int, sentiment: Optional[Sentiment] = None
     team = await session.get(Team, team_id)
 
     if team is None:
-        raise HTTPExceptionNotFound(f'No team found with id={team}')
+        raise HTTPExceptionNotFound(f'No team found with id={team_id}')
 
     answer = SENTIMENT_CHOICES_CALLABLE_MAP.get(sentiment, AnswerChoices.any)()
 
