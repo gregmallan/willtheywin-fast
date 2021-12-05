@@ -51,7 +51,11 @@ class AnswerChoices:
     ANSWERS_NEGATIVE = [Answer(text=text, sentiment=Sentiment.NEGATIVE) for text in _PHRASES_NEGATIVE]
     ANSWERS_NEUTRAL = [Answer(text=text, sentiment=Sentiment.NEUTRAL) for text in _PHRASES_NEUTRAL]
     ANSWERS_POSITIVE = [Answer(text=text, sentiment=Sentiment.POSITIVE) for text in _PHRASES_POSITIVE]
-    ANSWERS_ANY = [Answer(text=text, sentiment=Sentiment.POSITIVE) for text in _PHRASES_ANY]
+    ANSWERS_ANY = (
+        [Answer(text=text, sentiment=Sentiment.NEGATIVE) for text in _PHRASES_NEGATIVE] +
+        [Answer(text=text, sentiment=Sentiment.NEUTRAL) for text in _PHRASES_NEUTRAL] +
+        [Answer(text=text, sentiment=Sentiment.POSITIVE) for text in _PHRASES_POSITIVE]
+    )
 
     # TODO: Change this to take weights optional weights for negative, neutral and positive  sentiments
     @staticmethod

@@ -26,6 +26,26 @@ class TestAnswerChoices():
         if sentiment:
             assert answer.sentiment == sentiment
 
+    @pytest.mark.parametrize('phrase', (
+        AnswerChoices._PHRASES_NEGATIVE +
+        AnswerChoices._PHRASES_NEUTRAL +
+        AnswerChoices._PHRASES_NEGATIVE
+    ))
+    def test_phrases_in_phrases_any(self, phrase):
+        assert phrase in AnswerChoices._PHRASES_ANY
+
+    @pytest.mark.parametrize('phrase', AnswerChoices._PHRASES_NEGATIVE)
+    def test_sentiment_negative_phrases_answers_in_answers_any(self, phrase):
+        assert Answer(text=phrase, sentiment=Sentiment.NEGATIVE) in AnswerChoices.ANSWERS_ANY
+
+    @pytest.mark.parametrize('phrase', AnswerChoices._PHRASES_NEUTRAL)
+    def test_sentiment_neutral_phrases_answers_in_answers_any(self, phrase):
+        assert Answer(text=phrase, sentiment=Sentiment.NEUTRAL) in AnswerChoices.ANSWERS_ANY
+
+    @pytest.mark.parametrize('phrase', AnswerChoices._PHRASES_POSITIVE)
+    def test_sentiment_positive_phrases_answers_in_answers_any(self, phrase):
+        assert Answer(text=phrase, sentiment=Sentiment.POSITIVE) in AnswerChoices.ANSWERS_ANY
+
     def test_negative(self):
         answer = AnswerChoices.negative()
         assert answer in AnswerChoices.ANSWERS_NEGATIVE
