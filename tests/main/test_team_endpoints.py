@@ -3,6 +3,7 @@ from typing import Dict, List
 import pytest
 
 from src.db.models import Team, TeamCreate
+from src.db.schema.answer import Answer, AnswerChoices, Sentiment
 
 
 def not_found_response_json(team_id):
@@ -286,3 +287,57 @@ class TestDeleteTeam():
         response = await async_client.delete(f'/teams/{team.id}')
         assert response.status_code == 200
         assert response.json() == {'OK': True, 'team': team, 'msg': f'team id={team.id} deleted'}
+
+
+@pytest.mark.asyncio
+class TestTeamAsk():
+
+    async def test_no_teams(self, async_client, db):
+        non_existent_id = 1
+        response = await async_client.get(f'/teams/{non_existent_id}/ask')
+        assert response.status_code == 404
+        assert response.json() == not_found_response_json(non_existent_id)
+
+    async def test_team_exist_invalid_id(self, async_client, team):
+        invalid_id = team.name
+        response = await async_client.get(f'/teams/{invalid_id}')
+        assert response.status_code == 422
+        res_data = response.json()
+        assert 'team_id' in res_data['detail'][0]['loc']
+
+    async def test_single_team_exist_not_found(self, async_client, team):
+        non_existent_id = team.id + 1
+        response = await async_client.get(f'/teams/{non_existent_id}/ask')
+        assert response.status_code == 404
+        assert response.json() == not_found_response_json(non_existent_id)
+
+    async def test_team_exist_no_sentiment(self, async_client, team):
+        response = await async_client.get(f'/teams/{team.id}/ask')
+        assert response.status_code == 200
+        res_data = response.json()
+        assert res_data['team'] == team
+        assert res_data['answer']['text'] in AnswerChoices._PHRASES_ANY
+        assert res_data['answer']['sentiment'] in Sentiment.POSITIVE or Sentiment.NEUTRAL or Sentiment.NEGATIVE
+
+    @pytest.mark.parametrize('valid_sentiment', [s for s in Sentiment])
+    @pytest.mark.parametrize('query_str_param', ['s', 'sent', 'feels', 'sentimet', ])
+    async def test_team_exist_invalid_sentiment_query_param(self, query_str_param, valid_sentiment, async_client, team):
+        """
+        Test that an invalid query string param close to 'sentiment returns an answer from any sentiment and
+        requested sentiment is null/None.
+        """
+        response = await async_client.get(f'/teams/{team.id}/ask', params={query_str_param: valid_sentiment})
+        assert response.status_code == 200
+        res_data = response.json()
+        assert res_data['team'] == team
+        assert res_data['requested_sentiment'] == None
+        assert res_data['answer'] in AnswerChoices.ANSWERS_ANY
+
+    @pytest.mark.parametrize('sentiment', [s.value for s in Sentiment])
+    async def test_team_exist_invalid_sentiment_query_param(self, sentiment, async_client, team):
+        response = await async_client.get(f'/teams/{team.id}/ask', params={'sentiment': sentiment})
+        assert response.status_code == 200
+        res_data = response.json()
+        assert res_data['team'] == team
+        assert res_data['requested_sentiment'] == sentiment
+        assert res_data['answer'] in getattr(AnswerChoices, f'ANSWERS_{sentiment.upper()}')
