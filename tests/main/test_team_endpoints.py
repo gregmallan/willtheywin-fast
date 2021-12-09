@@ -319,7 +319,7 @@ class TestTeamAsk():
         assert res_data['answer']['text'] in AnswerChoices._PHRASES_ANY
         assert res_data['answer']['sentiment'] in Sentiment.POSITIVE or Sentiment.NEUTRAL or Sentiment.NEGATIVE
 
-    @pytest.mark.parametrize('valid_sentiment', [s for s in Sentiment])
+    @pytest.mark.parametrize('valid_sentiment', [s.value for s in Sentiment])
     @pytest.mark.parametrize('query_str_param', ['s', 'sent', 'feels', 'sentimet', ])
     async def test_team_exist_invalid_sentiment_query_param(self, query_str_param, valid_sentiment, async_client, team):
         """
@@ -334,7 +334,7 @@ class TestTeamAsk():
         assert res_data['answer'] in AnswerChoices.ANSWERS_ANY
 
     @pytest.mark.parametrize('sentiment', [s.value for s in Sentiment])
-    async def test_team_exist_invalid_sentiment_query_param(self, sentiment, async_client, team):
+    async def test_team_exist_valid_sentiment(self, sentiment, async_client, team):
         response = await async_client.get(f'/teams/{team.id}/ask', params={'sentiment': sentiment})
         assert response.status_code == 200
         res_data = response.json()
