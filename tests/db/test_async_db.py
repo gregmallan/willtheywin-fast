@@ -2,7 +2,27 @@ import pytest
 
 from sqlalchemy import select
 
-from src.db.models import Team
+from src.db.models import Team, TeamCreate
+
+
+@pytest.mark.asyncio
+async def test_async_db_team_creatable_no_migs(db_no_migs, db_session):
+    tc = TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey')
+    team = Team(**tc.dict())
+    db_session.add(team)
+    await db_session.commit()
+    await db_session.refresh(team)
+    assert team.id
+
+
+@pytest.mark.asyncio
+async def test_async_db_team_creatable(db, db_session):
+    tc = TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey')
+    team = Team(**tc.dict())
+    db_session.add(team)
+    await db_session.commit()
+    await db_session.refresh(team)
+    assert team.id
 
 
 @pytest.mark.asyncio

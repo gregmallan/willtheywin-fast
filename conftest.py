@@ -1,9 +1,10 @@
 from pathlib import Path
 
-import pytest
-
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
+import pytest
 
 from src.db.db import create_async_db_engine, get_session_with_engine, init_db_with_engine, reset_db_with_engine
 from src.db.models import Team, TeamCreate
@@ -56,14 +57,33 @@ def override_get_session_fixture():
 
 
 @pytest.fixture
-async def db():
-    # TODO: Do this with alembic migrations
-    await init_db_with_engine(engine)
+def db():
+    path = Path.cwd().joinpath(TEST_DB_NAME)  # cwd is the directory pytest is invoked from
+    assert path.exists() is False
+
+    config = Config('alembic.ini')
+    config.set_main_option('sqlalchemy.url', TEST_DATABASE_URL)
+    command.upgrade(config, 'head')
+
     yield
-    # await reset_db_with_engine(engine)
-    # CWD is the directory pytest is invoked from
-    path = Path.cwd().joinpath(TEST_DB_NAME)
+
     assert path.exists()
+    path.unlink()
+    assert path.exists() is False
+
+
+@pytest.fixture
+async def db_no_migs():
+    path = Path.cwd().joinpath(TEST_DB_NAME)  # cwd is the directory pytest is invoked from
+    assert path.exists() is False
+
+    await init_db_with_engine(engine)
+
+    yield
+
+    await reset_db_with_engine(engine)
+
+    assert path.exists() is True
     path.unlink()
     assert path.exists() is False
 
