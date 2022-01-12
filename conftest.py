@@ -7,7 +7,7 @@ from httpx import AsyncClient
 import pytest
 
 from src.db.db import create_async_db_engine, get_session_with_engine, init_db_with_engine, reset_db_with_engine
-from src.db.models import Team, TeamCreate
+from src.db.models.team import Team, TeamCreate
 from src.main import app as fastapi_app, get_session
 
 # Testing Sqlite async

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.db import get_session, init_db
-from src.db.models import Team, TeamBase, TeamCreate
+from src.db.models.team import Team, TeamCreate
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
 from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
 

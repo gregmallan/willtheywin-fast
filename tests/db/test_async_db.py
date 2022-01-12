@@ -2,7 +2,7 @@ import pytest
 
 from sqlalchemy import select
 
-from src.db.models import Team, TeamCreate
+from src.db.models.team import Team, TeamCreate
 
 
 @pytest.mark.asyncio

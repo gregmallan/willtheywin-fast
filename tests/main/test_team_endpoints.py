@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import pytest
 
-from src.db.models import Team, TeamCreate
+from src.db.models.team import Team
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
 
 
