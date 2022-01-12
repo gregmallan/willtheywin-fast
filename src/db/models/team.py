@@ -5,10 +5,7 @@ from pydantic import validator
 from sqlalchemy import Column, String, UniqueConstraint
 from sqlmodel import SQLModel, Field, Index
 
-
-def normalize_str(value: str) -> str:
-    return ' '.join(word.strip() for word in value.strip().split(' ') if word).lower()
-
+from src.db.models import normalize_str
 
 class TeamBase(SQLModel):
     name: str = Field(sa_column=Column('name', String, nullable=False, index=True, unique=False))
