@@ -8,6 +8,7 @@ from sqlmodel import SQLModel
 
 from alembic import context
 
+from src.db.models.sport import Sport
 from src.db.models.team import Team
 
 # this is the Alembic Config object, which provides
@@ -48,6 +49,7 @@ def run_migrations_offline():
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
+        render_as_batch=True,
         dialect_opts={"paramstyle": "named"},
     )
 
@@ -56,7 +58,7 @@ def run_migrations_offline():
 
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(connection=connection, target_metadata=target_metadata, render_as_batch=True)
 
     with context.begin_transaction():
         context.run_migrations()

@@ -8,6 +8,7 @@ import pytest
 
 from src.db.db import create_async_db_engine, get_session_with_engine, init_db_with_engine, reset_db_with_engine
 from src.db.models.team import Team, TeamCreate
+from src.db.models.sport import Sport, SportCreate
 from src.main import app as fastapi_app, get_session
 
 # Testing Sqlite async
@@ -59,6 +60,9 @@ def override_get_session_fixture():
 @pytest.fixture
 def db():
     path = Path.cwd().joinpath(TEST_DB_NAME)  # cwd is the directory pytest is invoked from
+    # remove if existing from previous test errors
+    if path.exists():
+        path.unlink()
     assert path.exists() is False
 
     config = Config('alembic.ini')
@@ -75,6 +79,8 @@ def db():
 @pytest.fixture
 async def db_no_migs():
     path = Path.cwd().joinpath(TEST_DB_NAME)  # cwd is the directory pytest is invoked from
+    if path.exists():
+        path.unlink()
     assert path.exists() is False
 
     await init_db_with_engine(engine)
@@ -97,11 +103,31 @@ async def db_session():
 
 # --  Model fixtures --
 
+async def create_sport(db_session, name):
+    sc = SportCreate(name=name)
+    sport = Sport(**sc.dict())
+    db_session.add(sport)
+    await db_session.commit()
+    await db_session.refresh(sport)
+    assert sport.id is not None
+    return sport
+
+
 @pytest.fixture
-async def team(db, db_session):
+async def hockey(db, db_session):
+    return await create_sport(db_session, 'Hockey')
+
+
+@pytest.fixture
+async def baseball(db, db_session):
+    return await create_sport(db_session, 'Baseball')
+
+
+@pytest.fixture
+async def team(db, db_session, hockey):
     # Use TeamCreate for field normalization on name, city and sport but Team for the db query.
-    tc = TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey')
-    team = Team(**tc.dict())
+    tc = TeamCreate(name='Knuckleheads', city='Rain city')
+    team = Team(**tc.dict(), sport=hockey)
     db_session.add(team)
     await db_session.commit()
     await db_session.refresh(team)
@@ -109,16 +135,16 @@ async def team(db, db_session):
 
 
 @pytest.fixture
-async def teams(db, db_session):
+async def teams(db, db_session, hockey, baseball):
     # Use TeamCreate for field normalization on name, city and sport but Team for the db query.
     teams = [
-        TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey'),
-        TeamCreate(name='Flames', city='Cow town', sport='Hockey'),
-        TeamCreate(name='Blue Jays', city='Taranta', sport='Baseball'),
+        (TeamCreate(name='Knuckleheads', city='Rain city'), hockey),
+        (TeamCreate(name='Flames', city='Cow town'), hockey),
+        (TeamCreate(name='Blue Jays', city='Taranta'), baseball),
     ]
 
-    for i, tc in enumerate(teams):
-        team = Team(**tc.dict())
+    for i, team_tup in enumerate(teams):
+        team = Team(**team_tup[0].dict(), sport=team_tup[1])
         teams[i] = team
         db_session.add(team)
 
