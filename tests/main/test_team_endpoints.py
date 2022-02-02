@@ -166,12 +166,13 @@ class TestGetTeams:
         assert response.status_code == 200
         response_teams = response.json()
         assert response_teams
+        assert len(response_teams) == len(teams)
 
         sort_team_dicts_by_id(response_teams)
         sort_team_objs_by_id(teams)
 
         # TODO: Why does pytest say list of dicts == list of Team objects. Not using only this assertion until I know why.
-        #  I think it may come from SQLModel <- pydantic BaseModel <- ModelMetaclass. See test_model_eq.py
+        #  I think it may come from SQLModel <- pydantic BaseModel <- ModelMetaclass.
         assert response.json() == teams
 
         for team_dict, team in zip(response_teams, teams):

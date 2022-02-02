@@ -124,6 +124,29 @@ async def baseball(db, db_session):
 
 
 @pytest.fixture
+async def sports(db, db_session):
+    # Use SportCreate for field normalization on name but Sport for the db query.
+    sports = [
+        SportCreate(name='Hockey (NHL)'),
+        SportCreate(name='BASEBALL (MLB)'),
+        SportCreate(name='basketball (NBA)'),
+        SportCreate(name='Football (NFL)'),
+    ]
+
+    for i, sport in enumerate(sports):
+        sport = Sport(**sport.dict())
+        sports[i] = sport
+        db_session.add(sport)
+
+    await db_session.commit()
+
+    for s in sports:
+        await db_session.refresh(s)
+
+    return sports
+
+
+@pytest.fixture
 async def team(db, db_session, hockey):
     # Use TeamCreate for field normalization on name, city and sport but Team for the db query.
     tc = TeamCreate(name='Knuckleheads', city='Rain city')
