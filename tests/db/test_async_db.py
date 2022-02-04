@@ -1,28 +1,51 @@
 import pytest
+from sqlmodel import select
 
-from sqlalchemy import select
-
-from src.db.models import Team, TeamCreate
-
-
-@pytest.mark.asyncio
-async def test_async_db_team_creatable_no_migs(db_no_migs, db_session):
-    tc = TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey')
-    team = Team(**tc.dict())
-    db_session.add(team)
-    await db_session.commit()
-    await db_session.refresh(team)
-    assert team.id
+from src.db.models.sport import Sport, SportCreate
+from src.db.models.team import Team, TeamCreate
 
 
 @pytest.mark.asyncio
-async def test_async_db_team_creatable(db, db_session):
-    tc = TeamCreate(name='Knuckleheads', city='Rain city', sport='Hockey')
-    team = Team(**tc.dict())
+async def test_async_db_team_creatable_no_migs(db_no_migs, db_session, hockey):
+    tc = TeamCreate(name='Knuckleheads', city='Rain city')
+    team = Team(**tc.dict(), sport=hockey)
     db_session.add(team)
     await db_session.commit()
     await db_session.refresh(team)
+
     assert team.id
+    assert team.sport_id == hockey.id
+    assert team.sport == hockey
+
+
+@pytest.mark.asyncio
+async def test_async_db_team_creatable(db, db_session, hockey):
+    tc = TeamCreate(name='Knuckleheads', city='Rain city')
+    team = Team(**tc.dict(), sport=hockey)
+    db_session.add(team)
+    await db_session.commit()
+    await db_session.refresh(team)
+
+    assert team.id
+    assert team.sport_id == hockey.id
+    assert team.sport == hockey
+
+
+@pytest.mark.asyncio
+async def test_async_db_team_sport(db, db_session, hockey):
+    tc = TeamCreate(name='Knuckleheads', city='Rain city')
+    team = Team(**tc.dict(), sport=hockey)
+    db_session.add(team)
+    await db_session.commit()
+    await db_session.refresh(team)
+
+    query = select(Team).where(Team.id == team.id)
+    result = await db_session.execute(query)
+    db_team = result.scalars().one()
+
+    assert db_team
+    assert db_team == team
+    assert db_team.sport == hockey
 
 
 @pytest.mark.asyncio

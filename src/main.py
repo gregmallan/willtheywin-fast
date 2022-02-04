@@ -6,7 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.db import get_session, init_db
-from src.db.models import Team, TeamBase, TeamCreate
+from src.db.models.team import Team, TeamCreate
+from src.db.models.sport import Sport, SportCreate
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
 from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
 
@@ -24,6 +25,67 @@ async def ping():
     return {'ping': 'pong!'}
 
 
+@app.get('/sports', response_model=List[Sport])
+async def get_sports(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Sport))
+    sports = result.scalars().all()
+    return sports
+
+
+@app.post('/sports', response_model=Sport, status_code=status.HTTP_201_CREATED)
+async def create_sport(sport: SportCreate, session: AsyncSession = Depends(get_session)):
+    # sport = Sport(name=sport.name)
+    sport = Sport.from_orm(sport)
+    session.add(sport)
+    try:
+        await session.commit()
+    except IntegrityError as e:
+        raise HTTPBadRequest(f'IntegrityError creating Sport: {sport.dict()}')
+
+    await session.refresh(sport)
+    return sport
+
+
+@app.get('/sports/{sport_id}', response_model=Sport)
+async def get_sport(sport_id: int, session: AsyncSession = Depends(get_session)):
+    sport = await session.get(Sport, sport_id)  # Returns Sport instance
+
+    if sport is None:
+        raise HTTPExceptionNotFound(f'No sport found with id={sport_id}')
+
+    return sport
+
+
+@app.put('/sports/{sport_id}', response_model=Sport, status_code=status.HTTP_200_OK)
+async def update_sport(sport_id: int, sport: SportCreate, session: AsyncSession = Depends(get_session)):
+    db_sport = await session.get(Sport, sport_id)
+
+    if db_sport is None:
+        raise HTTPExceptionNotFound(f'No sport found with id={sport_id}')
+
+    for field, val in sport.dict().items():
+        setattr(db_sport, field, val)
+
+    session.add(db_sport)
+    await session.commit()
+    await session.refresh(db_sport)
+
+    return db_sport
+
+
+@app.delete('/sports/{sport_id}', response_model=Dict, status_code=status.HTTP_200_OK)
+async def delete_sport(sport_id: int, session: AsyncSession = Depends(get_session)):
+    sport = await session.get(Sport, sport_id)
+
+    if sport is None:
+        raise HTTPExceptionNotFound(f'No sport found with id={sport_id}')
+
+    await session.delete(sport)
+    await session.commit()
+
+    return {'OK': True, 'sport': sport, 'msg': f'sport id={sport_id} deleted'}
+
+
 @app.get('/teams', response_model=List[Team])
 async def get_teams(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(Team))
@@ -34,7 +96,7 @@ async def get_teams(session: AsyncSession = Depends(get_session)):
 
 @app.post('/teams', response_model=Team, status_code=status.HTTP_201_CREATED)
 async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_session)):
-    team = Team(name=team.name, city=team.city, sport=team.sport)
+    team = Team(name=team.name, city=team.city, sport_id=team.sport_id)
     session.add(team)
     try:
         await session.commit()
@@ -84,7 +146,12 @@ async def update_team(team_id: int, team: TeamCreate, session: AsyncSession = De
         setattr(db_team, field, val)
 
     session.add(db_team)
-    await session.commit()
+
+    try:
+        await session.commit()
+    except IntegrityError as e:
+        raise HTTPBadRequest(f'IntegrityError updating Team: {team.dict()}')
+
     await session.refresh(db_team)
 
     return db_team
