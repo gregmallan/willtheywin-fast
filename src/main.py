@@ -34,7 +34,8 @@ async def get_sports(session: AsyncSession = Depends(get_session)):
 
 @app.post('/sports', response_model=Sport, status_code=status.HTTP_201_CREATED)
 async def create_sport(sport: SportCreate, session: AsyncSession = Depends(get_session)):
-    sport = Sport(name=sport.name)
+    # sport = Sport(name=sport.name)
+    sport = Sport.from_orm(sport)
     session.add(sport)
     try:
         await session.commit()
@@ -95,7 +96,7 @@ async def get_teams(session: AsyncSession = Depends(get_session)):
 
 @app.post('/teams', response_model=Team, status_code=status.HTTP_201_CREATED)
 async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_session)):
-    team = Team(name=team.name, city=team.city, sport=team.sport)
+    team = Team(name=team.name, city=team.city, sport_id=team.sport_id)
     session.add(team)
     try:
         await session.commit()
@@ -145,7 +146,12 @@ async def update_team(team_id: int, team: TeamCreate, session: AsyncSession = De
         setattr(db_team, field, val)
 
     session.add(db_team)
-    await session.commit()
+
+    try:
+        await session.commit()
+    except IntegrityError as e:
+        raise HTTPBadRequest(f'IntegrityError updating Team: {team.dict()}')
+
     await session.refresh(db_team)
 
     return db_team

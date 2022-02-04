@@ -35,14 +35,14 @@ class TestCreateSport():
         assert res_data['detail'][0]['type'] == 'value_error.missing'
 
     @pytest.mark.parametrize('sport_dict', [
-        dict(name='Hockey'),
-        dict(name='hockey'),
-        dict(name='HOCKEY'),
-        dict(name='hocKeY'),
-        dict(name='hockey'),
-        dict(name='baseball'),
-        dict(name='BaSEbaLL'),
-        dict(name='BASEbALL'),
+        dict(name='Hockey (NHL)'),
+        dict(name='hockey (NHL)'),
+        dict(name='HOCKEY (NHL)'),
+        dict(name='hocKeY (NHL)'),
+        dict(name='hockey (NHL)'),
+        dict(name='baseball (MLB)'),
+        dict(name='BaSEbaLL (MLB)'),
+        dict(name='BASEbALL (MLB)'),
     ])
     async def test_create_sport_already_exists(self, sport_dict, async_client, hockey, baseball):
         response = await async_client.post('/sports', json=sport_dict)

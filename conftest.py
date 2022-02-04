@@ -115,12 +115,16 @@ async def create_sport(db_session, name):
 
 @pytest.fixture
 async def hockey(db, db_session):
-    return await create_sport(db_session, 'Hockey')
+    return await create_sport(db_session, 'Hockey (NHL)')
 
 
 @pytest.fixture
 async def baseball(db, db_session):
-    return await create_sport(db_session, 'Baseball')
+    return await create_sport(db_session, 'Baseball (MLB)')
+
+@pytest.fixture
+async def basketball(db, db_session):
+    return await create_sport(db_session, 'Basketball (NBA)')
 
 
 @pytest.fixture
@@ -158,12 +162,13 @@ async def team(db, db_session, hockey):
 
 
 @pytest.fixture
-async def teams(db, db_session, hockey, baseball):
+async def teams(db, db_session, hockey, baseball, basketball):
     # Use TeamCreate for field normalization on name, city and sport but Team for the db query.
     teams = [
         (TeamCreate(name='Knuckleheads', city='Rain city'), hockey),
         (TeamCreate(name='Flames', city='Cow town'), hockey),
         (TeamCreate(name='Blue Jays', city='Taranta'), baseball),
+        (TeamCreate(name='Raptors', city='Taranta'), basketball),
     ]
 
     for i, team_tup in enumerate(teams):
