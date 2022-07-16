@@ -2,12 +2,14 @@ from typing import Dict, List, Optional
 
 from fastapi import Depends, FastAPI, status
 from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.db import get_session, init_db
-from src.db.models.team import Team, TeamCreate
+from src.db.models.team import Team, TeamCreate, TeamReadWithSport
 from src.db.models.sport import Sport, SportCreate
+from src.db.models.related import SportReadWithTeams
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
 from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
 
@@ -25,10 +27,13 @@ async def ping():
     return {'ping': 'pong!'}
 
 
-@app.get('/sports', response_model=List[Sport])
+@app.get('/sports', response_model=List[SportReadWithTeams])
 async def get_sports(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Sport))
-    sports = result.scalars().all()
+    results = await session.execute(
+        select(Sport).options(selectinload(Sport.teams)).execution_options(populate_existing=True)
+    )
+
+    sports = results.scalars().all()
     return sports
 
 
@@ -46,9 +51,16 @@ async def create_sport(sport: SportCreate, session: AsyncSession = Depends(get_s
     return sport
 
 
-@app.get('/sports/{sport_id}', response_model=Sport)
+@app.get('/sports/{sport_id}', response_model=SportReadWithTeams)
 async def get_sport(sport_id: int, session: AsyncSession = Depends(get_session)):
-    sport = await session.get(Sport, sport_id)  # Returns Sport instance
+    result = await session.execute(
+        select(Sport, Team)
+            .join(Team, Team.sport_id == Sport.id, isouter=True)  # Do a left outer join to get sports with no teams
+            .where(Sport.id == sport_id)
+            .options(selectinload(Sport.teams))
+    )
+
+    sport = result.scalar()
 
     if sport is None:
         raise HTTPExceptionNotFound(f'No sport found with id={sport_id}')
@@ -86,11 +98,10 @@ async def delete_sport(sport_id: int, session: AsyncSession = Depends(get_sessio
     return {'OK': True, 'sport': sport, 'msg': f'sport id={sport_id} deleted'}
 
 
-@app.get('/teams', response_model=List[Team])
+@app.get('/teams', response_model=List[TeamReadWithSport])
 async def get_teams(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Team))
+    result = await session.execute(select(Team, Sport).join(Sport).options(selectinload(Team.sport)))
     teams = result.scalars().all()
-    # return [Team(id=t.id, name=t.name, city=t.city, sport=t.sport) for t in teams]
     return teams
 
 
@@ -107,15 +118,23 @@ async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_sess
     return team
 
 
-@app.get('/teams/{team_id}', response_model=Team)
+@app.get('/teams/{team_id}', response_model=TeamReadWithSport)
 async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
     # Alternate option to make the query for team by id
     # query = select(Team).where(Team.id == team_id)
     # results = await session.execute(query)
     # team = results.first() # Returns a sqlalchemy Row
     # team = results.one()  # Returns a sqlalchemy Row or raises
+    # team = await session.get(Team, team_id)  # Returns Team instance
 
-    team = await session.get(Team, team_id)  # Returns Team instance
+    result = await session.execute(
+        select(Team, Sport)
+            .join(Sport)
+            .where(Team.id == team_id)
+            .options(selectinload(Team.sport))
+    )
+
+    team = result.scalar()
 
     if team is None:
         raise HTTPExceptionNotFound(f'No team found with id={team_id}')

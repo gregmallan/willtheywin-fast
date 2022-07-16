@@ -5,6 +5,14 @@ import pytest
 from src.db.models.sport import Sport
 
 
+def sort_model_objs_by_id(models: List[Sport]):
+    models.sort(key=lambda t: t.id)
+
+
+def sort_model_dicts_by_id(models: List[Dict]):
+    models.sort(key=lambda t: t['id'])
+
+
 def not_found_response_json(sport_id):
     return {'detail': f'No sport found with id={sport_id}'}
 
@@ -110,31 +118,50 @@ class TestGetSport():
         assert response.status_code == 404
         assert response.json() == not_found_response_json(non_existent_id)
 
-    async def test_single_sport_exist_found(self, async_client, hockey):
+    async def test_single_sport_exist_found_no_teams(self, async_client, hockey):
         response = await async_client.get(f'/sports/{hockey.id}')
         assert response.status_code == 200
+        hockey = hockey.dict()
+        hockey['teams'] = []
         assert response.json() == hockey
 
+    async def test_single_sport_exist_found(self, async_client, hockey_with_teams):
+        hockey = hockey_with_teams[0]
+        teams = hockey_with_teams[1]
+        response = await async_client.get(f'/sports/{hockey.id}')
+        assert response.status_code == 200
+
+        hockey = hockey.dict()
+        hockey['teams'] = [team.dict() for team in teams]
+
+        sort_model_dicts_by_id(hockey['teams'])
+        hockey_response_data = response.json()
+        sort_model_dicts_by_id(hockey_response_data['teams'])
+
+        assert hockey_response_data == hockey
+
     async def test_multiple_sports_exist_not_found(self, async_client, sports):
-        sort_sport_objs_by_id(sports)
+        sort_model_objs_by_id(sports)
         non_existent_id = sports[-1].id + 1
         response = await async_client.get(f'/sports/{non_existent_id}')
         assert response.status_code == 404
         assert response.json() == not_found_response_json(non_existent_id)
 
-    async def test_multiple_sports_exist_found(self, async_client, sports):
+    async def test_multiple_sports_exist_found(self, async_client, sports_with_teams):
+        sports = sports_with_teams[0]
+        sports_teams = sports_with_teams[1]
         for sport in sports:
-            response = await async_client.get(f'/sports/{sport.id}')
+            sport_teams = [team.dict() for team in sports_teams[sport.id]]
+            sort_model_dicts_by_id(sport_teams)
+            sport = sport.dict()
+            sport['teams'] = sport_teams
+
+            response = await async_client.get(f"/sports/{sport['id']}")
+            sport_response_data = response.json()
+            sort_model_dicts_by_id(sport_response_data['teams'])
+
             assert response.status_code == 200
-            assert response.json() == sport
-
-
-def sort_sport_objs_by_id(sports: List[Sport]):
-    sports.sort(key=lambda t: t.id)
-
-
-def sort_sport_dicts_by_id(sports: List[Dict]):
-    sports.sort(key=lambda t: t['id'])
+            assert sport_response_data == sport
 
 
 @pytest.mark.asyncio
@@ -145,23 +172,27 @@ class TestGetSports:
         assert response.status_code == 200
         assert response.json() == []
 
-    async def test_get_sports(self, async_client, sports):
+    async def test_get_sports(self, async_client, sports_with_teams):
+        sports = sports_with_teams[0]
+        sports_teams = sports_with_teams[1]
+
         response = await async_client.get('/sports')
+        response_sports_data = response.json()
         assert response.status_code == 200
-        response_sports = response.json()
-        assert response_sports
-        assert len(response_sports) == len(sports)
+        assert response_sports_data
+        assert len(response_sports_data) == len(sports)
 
-        sort_sport_dicts_by_id(response_sports)
-        sort_sport_objs_by_id(sports)
+        sort_model_dicts_by_id(response_sports_data)
+        sort_model_objs_by_id(sports)
 
-        # TODO: Why does pytest say list of dicts == list of Sport objects. Not using only this assertion until I know why.
-        #  I think it may come from SQLModel <- pydantic BaseModel <- ModelMetaclass.
-        assert response.json() == sports
+        for sport, sport_response_data in zip(sports, response_sports_data):
+            sport_teams = [team.dict() for team in sports_teams[sport.id]]
+            sort_model_dicts_by_id(sport_teams)
+            sport = sport.dict()
+            sport['teams'] = sport_teams
+            sort_model_dicts_by_id(sport_response_data['teams'])
 
-        for sport_dict, sport in zip(response_sports, sports):
-            assert sport_dict == sport
-            assert sport_dict == sport.dict()
+            assert sport_response_data == sport
 
 
 @pytest.mark.asyncio
@@ -242,7 +273,7 @@ class TestDeleteSport():
         assert response.json() == {'OK': True, 'sport': hockey, 'msg': f'sport id={hockey.id} deleted'}
 
     async def test_multiple_sports_exist_not_found(self, async_client, sports):
-        sort_sport_objs_by_id(sports)
+        sort_model_objs_by_id(sports)
         non_existent_id = sports[-1].id + 1
         response = await async_client.delete(f'/sports/{non_existent_id}')
         assert response.status_code == 404

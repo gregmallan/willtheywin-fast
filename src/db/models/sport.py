@@ -19,3 +19,7 @@ class Sport(SportBase, table=True):
 
 class SportCreate(SportBase):
     _normalize_name = validator('name', allow_reuse=True)(normalize_str)
+
+
+class SportRead(SportBase):
+    id: int
