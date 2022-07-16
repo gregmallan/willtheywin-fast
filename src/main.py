@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.db import get_session, init_db
 from src.db.models.team import Team, TeamCreate, TeamReadWithSport
 from src.db.models.sport import Sport, SportCreate
+from src.db.models.related import SportReadWithTeams
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
 from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
 
@@ -47,9 +48,16 @@ async def create_sport(sport: SportCreate, session: AsyncSession = Depends(get_s
     return sport
 
 
-@app.get('/sports/{sport_id}', response_model=Sport)
+@app.get('/sports/{sport_id}', response_model=SportReadWithTeams)
 async def get_sport(sport_id: int, session: AsyncSession = Depends(get_session)):
-    sport = await session.get(Sport, sport_id)  # Returns Sport instance
+    result = await session.execute(
+        select(Sport, Team)
+            .join(Team, Team.sport_id == Sport.id, isouter=True)  # Do a left outer join to get sports with no teams
+            .where(Sport.id == sport_id)
+            .options(selectinload(Sport.teams))
+    )
+
+    sport = result.scalar()
 
     if sport is None:
         raise HTTPExceptionNotFound(f'No sport found with id={sport_id}')

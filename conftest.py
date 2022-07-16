@@ -119,12 +119,38 @@ async def hockey(db, db_session):
 
 
 @pytest.fixture
+async def hockey_with_teams(db, db_session, hockey):
+    teams = [
+        (TeamCreate(name='Knuckleheads', city='Rain city'), hockey),
+        (TeamCreate(name='Flames', city='Cow town'), hockey),
+    ]
+
+    for i, team_tup in enumerate(teams):
+        team = Team(**team_tup[0].dict(), sport=team_tup[1])
+        teams[i] = team
+        db_session.add(team)
+
+    await db_session.commit()
+
+    for t in teams:
+        await db_session.refresh(t)
+
+    return hockey, teams
+
+
+@pytest.fixture
 async def baseball(db, db_session):
     return await create_sport(db_session, 'Baseball (MLB)')
+
 
 @pytest.fixture
 async def basketball(db, db_session):
     return await create_sport(db_session, 'Basketball (NBA)')
+
+
+@pytest.fixture
+async def football(db, db_session):
+    return await create_sport(db_session, 'Football (NFL)')
 
 
 @pytest.fixture
@@ -182,3 +208,31 @@ async def teams(db, db_session, hockey, baseball, basketball):
         await db_session.refresh(t)
 
     return teams
+
+
+@pytest.fixture
+async def sports_with_teams(db, db_session, hockey, baseball, basketball, football):
+    # Use TeamCreate for field normalization on name, city and sport but Team for the db query.
+    teams = [
+        (TeamCreate(name='Knuckleheads', city='Rain city'), hockey),
+        (TeamCreate(name='Flames', city='Cow town'), hockey),
+        (TeamCreate(name='Blue Jays', city='Taranta'), baseball),
+        (TeamCreate(name='Raptors', city='Taranta'), basketball),
+    ]
+
+    sports = [hockey, baseball, basketball, football]
+    sport_teams = {sport.id: [] for sport in sports}
+
+    for i, team_tup in enumerate(teams):
+        team = Team(**team_tup[0].dict(), sport=team_tup[1])
+        teams[i] = team
+        db_session.add(team)
+
+        sport_teams[team_tup[1].id].append(team)
+
+    await db_session.commit()
+
+    for t in teams:
+        await db_session.refresh(t)
+
+    return sports, sport_teams
