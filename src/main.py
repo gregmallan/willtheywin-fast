@@ -27,10 +27,13 @@ async def ping():
     return {'ping': 'pong!'}
 
 
-@app.get('/sports', response_model=List[Sport])
+@app.get('/sports', response_model=List[SportReadWithTeams])
 async def get_sports(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Sport))
-    sports = result.scalars().all()
+    results = await session.execute(
+        select(Sport).options(selectinload(Sport.teams)).execution_options(populate_existing=True)
+    )
+
+    sports = results.scalars().all()
     return sports
 
 

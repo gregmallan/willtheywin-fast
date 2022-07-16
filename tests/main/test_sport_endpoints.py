@@ -172,23 +172,27 @@ class TestGetSports:
         assert response.status_code == 200
         assert response.json() == []
 
-    async def test_get_sports(self, async_client, sports):
-        response = await async_client.get('/sports')
-        assert response.status_code == 200
-        response_sports = response.json()
-        assert response_sports
-        assert len(response_sports) == len(sports)
+    async def test_get_sports(self, async_client, sports_with_teams):
+        sports = sports_with_teams[0]
+        sports_teams = sports_with_teams[1]
 
-        sort_model_dicts_by_id(response_sports)
+        response = await async_client.get('/sports')
+        response_sports_data = response.json()
+        assert response.status_code == 200
+        assert response_sports_data
+        assert len(response_sports_data) == len(sports)
+
+        sort_model_dicts_by_id(response_sports_data)
         sort_model_objs_by_id(sports)
 
-        # TODO: Why does pytest say list of dicts == list of Sport objects. Not using only this assertion until I know why.
-        #  I think it may come from SQLModel <- pydantic BaseModel <- ModelMetaclass.
-        assert response.json() == sports
+        for sport, sport_response_data in zip(sports, response_sports_data):
+            sport_teams = [team.dict() for team in sports_teams[sport.id]]
+            sort_model_dicts_by_id(sport_teams)
+            sport = sport.dict()
+            sport['teams'] = sport_teams
+            sort_model_dicts_by_id(sport_response_data['teams'])
 
-        for sport_dict, sport in zip(response_sports, sports):
-            assert sport_dict == sport
-            assert sport_dict == sport.dict()
+            assert sport_response_data == sport
 
 
 @pytest.mark.asyncio
