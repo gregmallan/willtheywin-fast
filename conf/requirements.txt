@@ -1,10 +1,19 @@
-alembic>=1.7.1,<1.8
+# --- Primary requirements loosely pinned ---
 aiosqlite>=0.17.0,<0.18
+alembic>=1.7.1,<1.8
 fastapi>=0.70.0,<0.71
+gunicorn>=20.1.0,<20.2
 httpx>=0.21.1,<0.22
 pytest>=6.2.5,<6.3
 pytest-asyncio>=0.16.0,<0.17
 pytest-cov>=3.0.0,<3.1
 requests>=2.26.0,<2.27.0
-sqlmodel>=0.0.4,<0.1
-uvicorn>=0.15.0,<0.16
+
+# sqlmodel>=0.0.4,<0.1
+sqlmodel==0.0.6
+
+SQLAlchemy==1.4.35
+# Beaks db model relationships! due to SQLModel??
+# SQLAlchemy==1.4.36
+
+uvicorn[standard]>=0.15.0,<0.16
