@@ -153,6 +153,10 @@ class TestGetTeam():
     async def test_single_team_exist_found(self, async_client, team):
         response = await async_client.get(f'/teams/{team.id}')
         assert response.status_code == 200
+        sport = team.sport
+        team = team.dict()
+        team['sport'] = sport
+
         assert response.json() == team
 
     async def test_multiple_teams_exist_not_found(self, async_client, teams):
@@ -166,6 +170,11 @@ class TestGetTeam():
         for team in teams:
             response = await async_client.get(f'/teams/{team.id}')
             assert response.status_code == 200
+
+            sport = team.sport
+            team = team.dict()
+            team['sport'] = sport
+
             assert response.json() == team
 
 
@@ -195,13 +204,14 @@ class TestGetTeams:
         sort_team_dicts_by_id(response_teams)
         sort_team_objs_by_id(teams)
 
-        # TODO: Why does pytest say list of dicts == list of Team objects. Not using only this assertion until I know why.
-        #  I think it may come from SQLModel <- pydantic BaseModel <- ModelMetaclass.
-        assert response.json() == teams
+        teams_list = []
+        for team in teams:
+            sport = team.sport
+            team = team.dict()
+            team['sport'] = sport
+            teams_list.append(team)
 
-        for team_dict, team in zip(response_teams, teams):
-            assert team_dict == team
-            assert team_dict == team.dict()
+        assert response.json() == teams_list
 
 
 @pytest.mark.asyncio

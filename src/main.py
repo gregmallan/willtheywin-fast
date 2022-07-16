@@ -2,11 +2,12 @@ from typing import Dict, List, Optional
 
 from fastapi import Depends, FastAPI, status
 from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.db import get_session, init_db
-from src.db.models.team import Team, TeamCreate
+from src.db.models.team import Team, TeamCreate, TeamReadWithSport
 from src.db.models.sport import Sport, SportCreate
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
 from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
@@ -86,11 +87,10 @@ async def delete_sport(sport_id: int, session: AsyncSession = Depends(get_sessio
     return {'OK': True, 'sport': sport, 'msg': f'sport id={sport_id} deleted'}
 
 
-@app.get('/teams', response_model=List[Team])
+@app.get('/teams', response_model=List[TeamReadWithSport])
 async def get_teams(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Team))
+    result = await session.execute(select(Team, Sport).join(Sport).options(selectinload(Team.sport)))
     teams = result.scalars().all()
-    # return [Team(id=t.id, name=t.name, city=t.city, sport=t.sport) for t in teams]
     return teams
 
 
@@ -107,15 +107,23 @@ async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_sess
     return team
 
 
-@app.get('/teams/{team_id}', response_model=Team)
+@app.get('/teams/{team_id}', response_model=TeamReadWithSport)
 async def get_team(team_id: int, session: AsyncSession = Depends(get_session)):
     # Alternate option to make the query for team by id
     # query = select(Team).where(Team.id == team_id)
     # results = await session.execute(query)
     # team = results.first() # Returns a sqlalchemy Row
     # team = results.one()  # Returns a sqlalchemy Row or raises
+    # team = await session.get(Team, team_id)  # Returns Team instance
 
-    team = await session.get(Team, team_id)  # Returns Team instance
+    result = await session.execute(
+        select(Team, Sport)
+            .join(Sport)
+            .where(Team.id == team_id)
+            .options(selectinload(Team.sport))
+    )
+
+    team = result.scalar()
 
     if team is None:
         raise HTTPExceptionNotFound(f'No team found with id={team_id}')

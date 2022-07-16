@@ -7,6 +7,8 @@ from sqlmodel import SQLModel, Field, Index, Relationship
 
 from src.db.models import normalize_str
 
+from src.db.models.sport import Sport
+
 
 class TeamBase(SQLModel):
     name: str = Field(sa_column=Column('name', String, nullable=False, index=True, unique=False))
@@ -25,4 +27,12 @@ class Team(TeamBase, table=True):
     )
 
     id: int = Field(default=None, primary_key=True, nullable=False)
-    sport: Optional['Sport'] = Relationship(back_populates='teams')
+    sport: Optional[Sport] = Relationship(back_populates='teams')
+
+
+class TeamRead(TeamBase):
+    id: int
+
+
+class TeamReadWithSport(TeamRead):
+    sport: Sport
