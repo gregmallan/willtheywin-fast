@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 #COPY ./migrations /willtheywin-fast/migrations
 #COPY ./tests /willtheywin-fast/tests/
 
+COPY ./seedall.py /willtheywin-fast/seedall.py
+
 COPY ./alembic.ini /willtheywin-fast/alembic.ini
 COPY ./conftest.py /willtheywin-fast/conftest.py
 COPY ./pytest.ini /willtheywin-fast/pytest.ini
