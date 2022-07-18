@@ -9,6 +9,7 @@ import pytest
 from src.db.db import create_async_db_engine, get_session_with_engine, init_db_with_engine, reset_db_with_engine
 from src.db.models.team import Team, TeamCreate
 from src.db.models.sport import Sport, SportCreate
+from src.db.schema.league import LeagueEnum
 from src.main import app as fastapi_app, get_session
 
 # Testing Sqlite async
@@ -103,8 +104,8 @@ async def db_session():
 
 # --  Model fixtures --
 
-async def create_sport(db_session, name):
-    sc = SportCreate(name=name)
+async def create_sport(db_session, name: str, league: LeagueEnum):
+    sc = SportCreate(name=name, league=league)
     sport = Sport(**sc.dict())
     db_session.add(sport)
     await db_session.commit()
@@ -115,7 +116,7 @@ async def create_sport(db_session, name):
 
 @pytest.fixture
 async def hockey(db, db_session):
-    return await create_sport(db_session, 'Hockey (NHL)')
+    return await create_sport(db_session, 'Hockey', LeagueEnum.NHL)
 
 
 @pytest.fixture
@@ -140,27 +141,27 @@ async def hockey_with_teams(db, db_session, hockey):
 
 @pytest.fixture
 async def baseball(db, db_session):
-    return await create_sport(db_session, 'Baseball (MLB)')
+    return await create_sport(db_session, 'Baseball', LeagueEnum.MLB)
 
 
 @pytest.fixture
 async def basketball(db, db_session):
-    return await create_sport(db_session, 'Basketball (NBA)')
+    return await create_sport(db_session, 'Basketball', LeagueEnum.NBA)
 
 
 @pytest.fixture
 async def football(db, db_session):
-    return await create_sport(db_session, 'Football (NFL)')
+    return await create_sport(db_session, 'Football', LeagueEnum.NFL)
 
 
 @pytest.fixture
 async def sports(db, db_session):
     # Use SportCreate for field normalization on name but Sport for the db query.
     sports = [
-        SportCreate(name='Hockey (NHL)'),
-        SportCreate(name='BASEBALL (MLB)'),
-        SportCreate(name='basketball (NBA)'),
-        SportCreate(name='Football (NFL)'),
+        SportCreate(name='Hockey', league=LeagueEnum.NHL),
+        SportCreate(name='BASEBALL', league=LeagueEnum.MLB),
+        SportCreate(name='basketball', league=LeagueEnum.NBA),
+        SportCreate(name='Football', league=LeagueEnum.NFL),
     ]
 
     for i, sport in enumerate(sports):
