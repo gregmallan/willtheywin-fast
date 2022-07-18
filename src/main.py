@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 
 from fastapi import Depends, FastAPI, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
@@ -19,7 +20,20 @@ SENTIMENT_CHOICES_CALLABLE_MAP = {
     Sentiment.POSITIVE: AnswerChoices.positive,
 }
 
+origins = [
+    "https://gregmallan.github.io/",
+]
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex='https?://127.0.0.1:\d*',
+    allow_origins=origins,
+    allow_credentials=False,
+    allow_methods=["GET", ],
+    allow_headers=["*"],
+)
 
 
 @app.get('/ping', response_model=Dict)
