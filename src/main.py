@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from fastapi import Depends, FastAPI, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -13,6 +13,8 @@ from src.db.models.sport import Sport, SportCreate
 from src.db.models.related import SportReadWithTeams
 from src.db.schema.answer import AnswerChoices, Sentiment
 from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
+
+DISABLE_CUD_ROUTES = True
 
 SENTIMENT_CHOICES_CALLABLE_MAP = {
     Sentiment.NEGATIVE: AnswerChoices.negative,
@@ -36,6 +38,11 @@ app.add_middleware(
 )
 
 
+def protect_route():
+    if DISABLE_CUD_ROUTES:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+
 @app.get('/ping', response_model=Dict)
 async def ping():
     return {'ping': 'pong!'}
@@ -51,7 +58,7 @@ async def get_sports(session: AsyncSession = Depends(get_session)):
     return sports
 
 
-@app.post('/sports', response_model=Sport, status_code=status.HTTP_201_CREATED)
+@app.post('/sports', response_model=Sport, status_code=status.HTTP_201_CREATED, dependencies=[Depends(protect_route)])
 async def create_sport(sport: SportCreate, session: AsyncSession = Depends(get_session)):
     sport = Sport.from_orm(sport)
     session.add(sport)
@@ -81,7 +88,8 @@ async def get_sport(sport_id: int, session: AsyncSession = Depends(get_session))
     return sport
 
 
-@app.put('/sports/{sport_id}', response_model=Sport, status_code=status.HTTP_200_OK)
+@app.put('/sports/{sport_id}', response_model=Sport, status_code=status.HTTP_200_OK,
+         dependencies=[Depends(protect_route)])
 async def update_sport(sport_id: int, sport: SportCreate, session: AsyncSession = Depends(get_session)):
     db_sport = await session.get(Sport, sport_id)
 
@@ -98,7 +106,8 @@ async def update_sport(sport_id: int, sport: SportCreate, session: AsyncSession 
     return db_sport
 
 
-@app.delete('/sports/{sport_id}', response_model=Dict, status_code=status.HTTP_200_OK)
+@app.delete('/sports/{sport_id}', response_model=Dict, status_code=status.HTTP_200_OK,
+            dependencies=[Depends(protect_route)])
 async def delete_sport(sport_id: int, session: AsyncSession = Depends(get_session)):
     sport = await session.get(Sport, sport_id)
 
@@ -118,7 +127,7 @@ async def get_teams(session: AsyncSession = Depends(get_session)):
     return teams
 
 
-@app.post('/teams', response_model=Team, status_code=status.HTTP_201_CREATED)
+@app.post('/teams', response_model=Team, status_code=status.HTTP_201_CREATED, dependencies=[Depends(protect_route)])
 async def create_team(team: TeamCreate, session: AsyncSession = Depends(get_session)):
     team = Team(name=team.name, city=team.city, sport_id=team.sport_id)
     session.add(team)
@@ -167,7 +176,7 @@ async def get_team_by_name(team_name: str, session: AsyncSession = Depends(get_s
     return teams
 
 
-@app.put('/teams/{team_id}', response_model=Team, status_code=status.HTTP_200_OK)
+@app.put('/teams/{team_id}', response_model=Team, status_code=status.HTTP_200_OK, dependencies=[Depends(protect_route)])
 async def update_team(team_id: int, team: TeamCreate, session: AsyncSession = Depends(get_session)):
     db_team = await session.get(Team, team_id)
 
@@ -189,7 +198,9 @@ async def update_team(team_id: int, team: TeamCreate, session: AsyncSession = De
     return db_team
 
 
-@app.delete('/teams/{team_id}', response_model=Dict, status_code=status.HTTP_200_OK)
+@app.delete(
+    '/teams/{team_id}', response_model=Dict, status_code=status.HTTP_200_OK, dependencies=[Depends(protect_route)]
+)
 async def delete_team(team_id: int, session: AsyncSession = Depends(get_session)):
     team = await session.get(Team, team_id)
 
