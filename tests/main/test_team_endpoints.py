@@ -7,6 +7,7 @@ from sqlmodel import select
 from src.db.models.team import Team
 from src.db.models.sport import Sport, SportCreate
 from src.db.schema.answer import Answer, AnswerChoices, Sentiment
+from src.db.schema.league import LeagueEnum
 
 
 def not_found_response_json(team_id):
@@ -107,15 +108,16 @@ class TestCreateTeam():
         assert res_data.pop('sport_id') == team_dict.pop('sport_id')
         assert res_data == {k: v.lower() for k, v in team_dict.items()}
 
-    @pytest.mark.parametrize('team_dict,sport_name', [
-        (dict(name='Canucks', city='Rain city'), 'hockey (nhl)'),
-        (dict(name='Flames', city='Calgary'), 'hockey (nhl)'),
-        (dict(name='Flames', city='CowTown'), 'hockey (nhl)'),  # name='Flames', city='Cow town' in teams fixture
-        (dict(name='Blue Jays', city='Toronto'), 'baseball (mlb)'),
-        (dict(name='Raptors', city='Toronto'), 'basketball (nba)'),
+    @pytest.mark.parametrize('team_dict,sport_name,league', [
+        (dict(name='Canucks', city='Rain city'), 'hockey', LeagueEnum.NHL),
+        (dict(name='Flames', city='Calgary'), 'hockey', LeagueEnum.NHL),
+        (dict(name='Flames', city='CowTown'), 'hockey', LeagueEnum.NHL),
+        # name='Flames', city='Cow town' in teams fixture
+        (dict(name='Blue Jays', city='Toronto'), 'baseball', LeagueEnum.MLB),
+        (dict(name='Raptors', city='Toronto'), 'basketball', LeagueEnum.NBA),
     ])
-    async def test_create_with_similar_teams(self, team_dict, sport_name, async_client, teams, db_session):
-        result = await db_session.execute(select(Sport).where(Sport.name == sport_name))
+    async def test_create_with_similar_teams(self, team_dict, sport_name, league, async_client, teams, db_session):
+        result = await db_session.execute(select(Sport).where(Sport.name == sport_name, Sport.league == league))
         sport = result.scalars().one()
         team_dict['sport_id'] = sport.id
 
