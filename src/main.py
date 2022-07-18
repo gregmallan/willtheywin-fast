@@ -2,16 +2,16 @@ from typing import Dict, List, Optional
 
 from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.db import get_session, init_db
+from src.db.db import get_session
 from src.db.models.team import Team, TeamCreate, TeamReadWithSport
 from src.db.models.sport import Sport, SportCreate
 from src.db.models.related import SportReadWithTeams
-from src.db.schema.answer import Answer, AnswerChoices, Sentiment
+from src.db.schema.answer import AnswerChoices, Sentiment
 from src.response_exception import HTTPBadRequest, HTTPExceptionNotFound
 
 SENTIMENT_CHOICES_CALLABLE_MAP = {
@@ -53,7 +53,6 @@ async def get_sports(session: AsyncSession = Depends(get_session)):
 
 @app.post('/sports', response_model=Sport, status_code=status.HTTP_201_CREATED)
 async def create_sport(sport: SportCreate, session: AsyncSession = Depends(get_session)):
-    # sport = Sport(name=sport.name)
     sport = Sport.from_orm(sport)
     session.add(sport)
     try:
