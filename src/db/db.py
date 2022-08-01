@@ -1,25 +1,18 @@
+import os
+
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 
-# Sqlite sync
-# DATABASE_URL = "sqlite:///../test.db"
-
-# Sqlite async
-DATABASE_URL = "sqlite+aiosqlite:///willtheywinfastapi-dev.db"
-
-# Postgres sync
-# DATABASE_URL = "postgresql://user:password@postgresserver/db"
-
-# Postgres async
-# DATABASE_URL = "postgresql+asyncpg://user:password@postgresserver/db"
+DATABASE_URL = os.environ.get('DATABASE_URL')
+ECHO_DB_QUERIES = bool(os.environ.get('ECHO_DB_QUERIES', 0))
 
 
 def create_async_db_engine(db_url, echo=False) -> AsyncEngine:
     return create_async_engine(db_url, connect_args={'check_same_thread': False}, echo=echo, future=True)
 
 
-engine = create_async_db_engine(DATABASE_URL, True)  # TODO: Don't want to echo in production
+engine = create_async_db_engine(DATABASE_URL, ECHO_DB_QUERIES)
 
 
 async def init_db():
