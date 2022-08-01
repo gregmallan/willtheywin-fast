@@ -1,0 +1,47 @@
+version: '3.7'
+
+services:
+  api: &willtheywinfastapi
+    container_name: will_they_win_fast_api_prod
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./src:/willtheywin-fast/src
+      - ./tests:/willtheywin-fast/tests
+      - ./migrations:/willtheywin-fast/migrations
+      - ./willtheywinfastapi.db:/willtheywin-fast/willtheywinfastapi.db
+    command: bash -c "gunicorn src.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80"
+    env_file:
+      - ./prod.env
+    environment:
+      - DEBUG=0
+    networks:
+      willtheywinfastnet:
+        aliases:
+          - api
+
+  nginx:
+    image: api/nginx
+    container_name: willtheywinfast_nginx_prod
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    volumes:
+      - static_data:/vol/static
+      - ./conf/nginx/prod.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - willtheywinfastnet
+    ports:
+      - "80:80"
+#      - "443:443"
+    depends_on:
+      - api
+
+networks:
+  willtheywinfastnet:
+
+volumes:
+  willtheywinfastapi.db:
+  static_data:

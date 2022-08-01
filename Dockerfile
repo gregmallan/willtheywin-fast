@@ -14,4 +14,15 @@ COPY ./alembic.ini /willtheywin-fast/alembic.ini
 COPY ./conftest.py /willtheywin-fast/conftest.py
 COPY ./pytest.ini /willtheywin-fast/pytest.ini
 
+COPY ./scripts /willtheywin-fast/scripts/
+
 WORKDIR /willtheywin-fast
+
+ENV USER apiuser
+ENV HOME /home/$USER
+
+RUN useradd -m $USER && echo $USER:$USER | chpasswd && adduser $USER sudo
+#RUN chown $USER:$USER $HOME
+RUN chown -R $USER:$USER /willtheywin-fast
+
+USER $USER
