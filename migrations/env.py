@@ -26,14 +26,15 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
 
-
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-
-config.set_main_option('sqlalchemy.url', os.environ.get('DATABASE_URL'))
+# Only set the sqlalchemy.url if it is not already set (it is set in conftest and we don't want to change that)
+if config.get_main_option('sqlalchemy.url') is None:
+    print(f"setting sqlalchemy.url as {os.environ.get('DATABASE_URL')}")
+    config.set_main_option('sqlalchemy.url', os.environ.get('DATABASE_URL'))
 
 
 def run_migrations_offline():
