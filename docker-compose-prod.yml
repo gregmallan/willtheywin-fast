@@ -31,13 +31,27 @@ services:
     volumes:
       - static_data:/vol/static
       - ./conf/nginx/prod.conf:/etc/nginx/conf.d/default.conf
+      - /home/willtheywin-fast/certbot/conf:/etc/nginx/ssl
+      - /home/willtheywin-fast/certbot/data:/var/www/certbot
+      - /home/willtheywin-fast/dhparam:/etc/ssl/certs
     networks:
       - willtheywinfastnet
     ports:
       - "80:80"
-#      - "443:443"
+      - "443:443"
     depends_on:
       - api
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email greg@willtheywin.ca --agree-tos --no-eff-email -d willtheywin.ca -d www.willtheywin.ca
+    volumes:
+      - /home/willtheywin-fast/certbot/conf:/etc/letsencrypt
+      - /home/willtheywin-fast/certbot/logs:/var/log/letsencrypt
+      - /home/willtheywin-fast/certbot/data:/var/www/certbot
+    depends_on:
+      - nginx
 
 networks:
   willtheywinfastnet:
@@ -45,3 +59,9 @@ networks:
 volumes:
   willtheywinfastapi.db:
   static_data:
+  dhparam:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/willtheywin-fast/dhparam/
+      o: bind
