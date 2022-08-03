@@ -11,6 +11,8 @@ COPY ./conftest.py /willtheywin-fast/conftest.py
 COPY ./pytest.ini /willtheywin-fast/pytest.ini
 COPY ./scripts /willtheywin-fast/scripts/
 
+RUN chmod +x /willtheywin-fast/scripts/*
+
 WORKDIR /willtheywin-fast
 
 ENV USER apiuser
