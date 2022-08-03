@@ -23,7 +23,7 @@ SENTIMENT_CHOICES_CALLABLE_MAP = {
 }
 
 origins = [
-    "https://gregmallan.github.io/",
+    "https://gregmallan.github.io",
 ]
 
 app = FastAPI()
